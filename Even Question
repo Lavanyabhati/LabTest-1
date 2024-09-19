@@ -1,0 +1,43 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt
+#1
+np.random.seed(42) 
+total_minutes_126 = 181440
+time = np.linspace(0, 3024, total_minutes_126)
+traffic_data = 30 + 15 * np.sin(2 * np.pi * time / 3024) + np.random.normal(0, 5, total_minutes_126)  # Simulated traffic data
+
+#2
+def low_pass_filter(data, cutoff=0.01, order=3):
+    b, a = butter(order, cutoff, btype='low', analog=False)
+    return filtfilt(b, a, data)
+smoothed_traffic = low_pass_filter(traffic_data)
+
+#3
+def compute_weekly_averages(data, minutes_per_week=10080):
+    weekly_averages = np.mean(data.reshape(-1, minutes_per_week), axis=1)
+    return weekly_averages
+
+#4
+plt.figure(figsize=(12, 6))
+plt.plot(time, traffic_data, label='Noisy Traffic Data', color='gray', alpha=0.6)
+plt.plot(time, smoothed_traffic, label='Smoothed Traffic Data', color='blue', linewidth=2)
+plt.scatter(np.arange(168), compute_weekly_averages, color='green', label='Weekly Averages', zorder=5)
+
+#5
+def highlight_exceeding_intervals(data, threshold=150, consecutive_days=3):
+    exceed_indices = np.where(data > threshold)[0]
+    exceed_streaks = np.split(exceed_indices, np.where(np.diff(exceed_indices) > 1)[0] + 1)
+    
+    for streak in exceed_streaks:
+        if len(streak) >= consecutive_days:
+            plt.plot(time[streak], smoothed_traffic[streak], color='red', marker='o', linestyle='none', label='Exceeding Traffic Threshold' if 'red' not in plt.gca().get_legend_handles_labels()[1] else "")
+
+highlight_exceeding_intervals(smoothed_traffic)
+
+plt.xlabel('Time (hours)')
+plt.ylabel('Number of stock changes in a week')
+plt.title('Simulated Traffic Flow weekly in 126 days with Smoothing and Threshold Exceedance Highlighting')
+plt.legend()
+plt.grid(True)
+plt.show()
